@@ -3,6 +3,7 @@ const os = require("os"),
     path = require("path"),
     https = require("https"),
     spawnSync = require("child_process").spawnSync
+    exec = require("child_process").exec
 
 class Action {
     constructor() {
@@ -45,7 +46,10 @@ class Action {
         this._executeInProcess(`git tag ${TAG}`)
         this._executeInProcess(`git push origin ${TAG}`)
 
-        process.stdout.write(`::set-output name=VERSION::${TAG}` + os.EOL)
+        exec(`echo "name=VERSION::${TAG}" >> $GITHUB_OUTPUT`, (err, stdout, stderr) => {
+            if (err)
+                this._printErrorAndExit(`error: ${err.message}`)
+        })
     }
 
     _pushPackage(version, name) {
@@ -78,12 +82,24 @@ class Action {
         const packageFilename = packages.filter(p => p.endsWith(".nupkg"))[0],
             symbolsFilename = packages.filter(p => p.endsWith(".snupkg"))[0]
 
-        process.stdout.write(`::set-output name=PACKAGE_NAME::${packageFilename}` + os.EOL)
-        process.stdout.write(`::set-output name=PACKAGE_PATH::${path.resolve(packageFilename)}` + os.EOL)
+        exec(`echo "name=PACKAGE_NAME::${packageFilename}" >> $GITHUB_OUTPUT`, (err, stdout, stderr) => {
+            if (err)
+                this._printErrorAndExit(`error: ${err.message}`)
+        })
+        exec(`echo "name=PACKAGE_PATH::${path.resolve(packageFilename)}" >> $GITHUB_OUTPUT`, (err, stdout, stderr) => {
+            if (err)
+                this._printErrorAndExit(`error: ${err.message}`)
+        })
 
         if (symbolsFilename) {
-            process.stdout.write(`::set-output name=SYMBOLS_PACKAGE_NAME::${symbolsFilename}` + os.EOL)
-            process.stdout.write(`::set-output name=SYMBOLS_PACKAGE_PATH::${path.resolve(symbolsFilename)}` + os.EOL)
+            exec(`echo "name=SYMBOLS_PACKAGE_NAME::${symbolsFilename}" >> $GITHUB_OUTPUT`, (err, stdout, stderr) => {
+                if (err)
+                    this._printErrorAndExit(`error: ${err.message}`)
+            })
+            exec(`echo "name=SYMBOLS_PACKAGE_PATH::${path.resolve(symbolsFilename)}" >> $GITHUB_OUTPUT`, (err, stdout, stderr) => {
+                if (err)
+                    this._printErrorAndExit(`error: ${err.message}`)
+            })
         }
 
         if (this.tagCommit)
